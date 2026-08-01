@@ -1,0 +1,46 @@
+# cuotas_disco.txt
+# Componente 2: Sistemas Operativos y Almacenamiento
+# Configuracion de cuotas de disco para prevenir corrupcion de ext4
+
+
+# --- Paso 1: Instalar el paquete de cuotas ---
+sudo apt update
+sudo apt install quota -y
+
+# --- Paso 2: Respaldar /etc/fstab antes de modificarlo ---
+sudo cp /etc/fstab /etc/fstab.bak
+
+# --- Paso 3: Editar /etc/fstab ---
+sudo nano /etc/fstab
+
+# Buscar la linea de la particion raiz, por ejemplo:
+#   /dev/sda1  /  ext4  defaults  0  1
+#
+# Y agregar las opciones usrquota y grpquota, quedando asi:
+#   /dev/sda1  /  ext4  defaults,usrquota,grpquota  0  1
+#
+# Guardar con Ctrl+O, Enter, y salir con Ctrl+X
+
+# --- Paso 4: Remontar la particion raiz para aplicar cambios ---
+sudo mount -o remount /
+
+# --- Paso 5: Generar los archivos de control de cuotas ---
+sudo quotacheck -cug /
+
+# --- Paso 6: Activar las cuotas ---
+sudo quotaon -v /
+
+# --- Paso 7: Asignar limite de cuota a un usuario especifico ---
+# (se abre un editor interactivo donde se define el limite
+#  "soft" -advertencia- y "hard" -limite duro- en bloques de disco)
+sudo edquota -u usuario1
+
+# --- Paso 8: Verificar el uso de cuota del usuario ---
+sudo quota -u usuario1
+
+
+# Objetivo: evitar que un usuario o proceso llene el 100% del
+# disco, como ocurrio con el archivo de volcado temporal que
+# corrompio el sistema de archivos ext4 y tumbo el servidor de
+# correo institucional (incidente del Componente 2).
+

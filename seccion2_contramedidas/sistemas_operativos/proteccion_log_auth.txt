@@ -1,0 +1,40 @@
+# proteccion_log_auth.txt
+# Componente 2: Sistemas Operativos y Almacenamiento
+# Proteccion de /var/log/auth.log y reenvio remoto (inmutabilidad)
+
+# --- Paso 1: Verificar permisos actuales del log ---
+ls -l /var/log/auth.log
+
+# --- Paso 2: Restringir permisos y propietario ---
+# Solo root y el grupo "adm" (administradores del sistema) podran
+# leer el archivo; ningun usuario estandar podra modificarlo.
+sudo chmod 640 /var/log/auth.log
+sudo chown root:adm /var/log/auth.log
+
+# --- Paso 3: Verificar que el cambio se aplico correctamente ---
+ls -l /var/log/auth.log
+
+# =============================================================
+# Paso 4: Inmutabilidad mediante syslog remoto
+# (envia una copia de los logs a otro servidor, para que aunque
+#  el log local sea borrado o alterado, exista una copia externa
+#  que sirva como evidencia forense - principio de ISO 27037)
+# =============================================================
+
+sudo apt install rsyslog -y
+sudo nano /etc/rsyslog.conf
+
+# Agregar al final del archivo (reemplazar la IP por la del
+# servidor remoto de logs que se tenga disponible):
+#   *.* @@192.168.10.1:514
+
+sudo systemctl restart rsyslog
+sudo systemctl status rsyslog
+
+
+#La ausencia de proteccion sobre este archivo
+# permitia que cualquier usuario con acceso local alterara o
+# borrara los registros de autenticacion, rompiendo la cadena
+# de custodia digital exigida por la norma ISO/IEC 27037 para
+# que la evidencia sea admisible ante una autoridad.
+

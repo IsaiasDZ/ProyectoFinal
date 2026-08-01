@@ -1,0 +1,43 @@
+# jail.local - Configuracion de fail2ban para bloqueo automatico
+# Componente 2: Sistemas Operativos y Almacenamiento
+
+
+[sshd]
+enabled  = true
+port     = 2222
+filter   = sshd
+logpath  = /var/log/auth.log
+maxretry = 3
+bantime  = 3600
+findtime = 600
+
+# enabled  -> activa la jail (regla de proteccion) para el servicio SSH
+# port     -> puerto que fail2ban debe vigilar (debe coincidir con el
+#             puerto definido en sshd_config, en este caso 2222)
+# filter   -> patron de expresiones regulares que usa fail2ban para
+#             detectar intentos fallidos de login en los logs
+# logpath  -> archivo de log que fail2ban va a monitorear
+# maxretry -> cantidad de intentos fallidos antes de bloquear la IP
+# bantime  -> tiempo de bloqueo en segundos (3600 = 1 hora)
+# findtime -> ventana de tiempo en segundos dentro de la cual se
+#             cuentan los intentos fallidos (600 = 10 minutos)
+
+
+
+# 1) Instalar fail2ban:
+#    sudo apt update
+#    sudo apt install fail2ban -y
+#
+# 2) Crear/editar el archivo de configuracion:
+#    sudo nano /etc/fail2ban/jail.local
+
+#
+# 3) Habilitar el servicio para que inicie con el sistema:
+#    sudo systemctl enable fail2ban
+#
+# 4) Reiniciar el servicio para aplicar la configuracion:
+#    sudo systemctl restart fail2ban
+#
+# 5) Verificar que la jail este activa:
+#    sudo fail2ban-client status sshd
+

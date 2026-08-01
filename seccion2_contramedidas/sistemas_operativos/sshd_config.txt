@@ -1,0 +1,41 @@
+# sshd_config - Configuracion endurecida (hardening) del servidor SSH
+# Componente 2: Sistemas Operativos y Almacenamiento
+
+
+# --- Cambios aplicados respecto a la configuracion por defecto ---
+
+# 1. Cambio de puerto por defecto (mitiga escaneos automatizados en el puerto 22)
+Port 2222
+
+# 2. Deshabilita el inicio de sesion directo como root (obliga a usar cuenta
+#    normal + sudo, dejando rastro de auditoria de quien ejecuto que accion)
+PermitRootLogin no
+
+# 3. Mantiene autenticacion por contrasena (ajustar a "no" si se migra a llaves SSH)
+PasswordAuthentication yes
+
+# 4. Limita los intentos de autenticacion antes de cortar la conexion
+MaxAuthTries 3
+
+# 5. Tiempo maximo para completar el login antes de cerrar la conexion (segundos)
+LoginGraceTime 30
+
+# 6. Deshabilita el reenvio de X11 (reduce superficie de ataque)
+X11Forwarding no
+
+# 7. Fuerza el uso de la version 2 del protocolo SSH (la version 1 es obsoleta e insegura)
+Protocol 2
+
+
+# 1) Se Respalda el archivo original:
+#    sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
+#
+# 2) Se reemplaza el contenido de /etc/ssh/sshd_config 
+#
+# 3) Se verifica que la sintaxis sea correcta antes de reiniciar:
+#    sudo sshd -t
+#
+# 4) Reiniciamos el servicio para aplicar cambios:
+#    sudo systemctl restart sshd
+
+
