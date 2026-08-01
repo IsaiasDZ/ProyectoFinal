@@ -1,0 +1,28 @@
+# =====================================================
+# Programar backup automático (CRON)
+# =====================================================
+
+# Editar el crontab del usuario
+crontab -e
+
+# Backup diario a las 2:00 AM
+0 2 * * * /home/logistica/backup_cifrado.sh >> /home/logistica/logs/cron_backup.log 2>&1
+
+# Verificar que se programó
+crontab -l
+
+# ---------------------------------------------------------
+# Comandos de verificación de backups
+# ---------------------------------------------------------
+
+# Ver todos los backups
+ls -la /home/logistica/backups/
+
+# Ver tamaño de los backups
+du -sh /home/logistica/backups/
+
+# Ver contenido del log
+cat /home/logistica/logs/backup.log
+
+# Ver los últimos backups
+ls -lt /home/logistica/backups/ | head -5

@@ -1,0 +1,12 @@
+# =====================================================
+# Creación de directorios para backups
+# =====================================================
+
+# Crear directorio para backups
+mkdir -p /home/logistica/backups
+
+# Crear directorio para logs
+mkdir -p /home/logistica/logs
+
+# Verificar que se crearon
+ls -la /home/logistica/

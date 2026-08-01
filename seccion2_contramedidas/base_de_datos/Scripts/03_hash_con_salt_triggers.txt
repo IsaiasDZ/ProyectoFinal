@@ -1,0 +1,171 @@
+-- =====================================================
+-- Script: 04_hash_con_salt_triggers.sql
+-- Descripcion: Implementa hash con salt mediante TRIGGERS
+-- =====================================================
+
+USE istmo_db_seguro;
+
+-- 1. TRIGGER: Hash automatico al INSERTAR nuevo usuario
+DELIMITER $$
+
+CREATE TRIGGER before_insert_usuario
+BEFORE INSERT ON usuarios
+FOR EACH ROW
+BEGIN
+    -- Generar salt unico de 64 caracteres (SHA2 de bytes aleatorios)
+    SET NEW.salt = SHA2(RANDOM_BYTES(32), 256);
+    
+    -- Generar hash combinando contraseña + salt
+    -- NOTA: La aplicacion envia la contraseña en texto plano en el campo password_hash
+    SET NEW.password_hash = SHA2(CONCAT(NEW.password_hash, NEW.salt), 256);
+END$$
+
+DELIMITER ;
+
+-- 2. TRIGGER: Hash automatico al ACTUALIZAR contraseña
+DELIMITER $$
+
+CREATE TRIGGER before_update_usuario
+BEFORE UPDATE ON usuarios
+FOR EACH ROW
+BEGIN
+    -- Solo actuar si la contraseña esta siendo modificada
+    IF NEW.password_hash != OLD.password_hash THEN
+        -- Generar nuevo salt
+        SET NEW.salt = SHA2(RANDOM_BYTES(32), 256);
+        
+        -- Generar nuevo hash con el nuevo salt
+        SET NEW.password_hash = SHA2(CONCAT(NEW.password_hash, NEW.salt), 256);
+        
+        -- Registrar fecha de cambio
+        SET NEW.ultimo_cambio_password = NOW();
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 3. TRIGGER: Auditoria de cambios en saldos
+DELIMITER $$
+
+CREATE TRIGGER trg_auditoria_saldo
+AFTER UPDATE ON cuentas_facturacion
+FOR EACH ROW
+BEGIN
+    IF OLD.saldo <> NEW.saldo THEN
+        INSERT INTO auditoria_transacciones
+            (id_transaccion, usuario_bd, ip_origen, 
+             saldo_anterior, saldo_nuevo, operacion)
+        VALUES
+            (NEW.id_transaccion, 
+             CURRENT_USER(), 
+             SUBSTRING_INDEX(CURRENT_USER(), '@', -1),
+             OLD.saldo, 
+             NEW.saldo, 
+             'UPDATE');
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 4. FUNCION: Verificar contraseña al hacer login
+DELIMITER $$
+
+CREATE FUNCTION verificar_credenciales(
+    p_username VARCHAR(50), 
+    p_password VARCHAR(100)
+)
+RETURNS BOOLEAN
+DETERMINISTIC
+BEGIN
+    DECLARE stored_hash VARCHAR(255);
+    DECLARE stored_salt VARCHAR(64);
+    DECLARE calculated_hash VARCHAR(255);
+    
+    -- Obtener el hash y salt del usuario
+    SELECT password_hash, salt 
+    INTO stored_hash, stored_salt
+    FROM usuarios
+    WHERE username = p_username;
+    
+    -- Calcular el hash con la contraseña ingresada y el salt almacenado
+    SET calculated_hash = SHA2(CONCAT(p_password, stored_salt), 256);
+    
+    -- Comparar los hashes
+    IF stored_hash = calculated_hash THEN
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 5. PROCEDIMIENTO: Registrar intento de acceso
+DELIMITER $$
+
+CREATE PROCEDURE registrar_intento_acceso(
+    p_username VARCHAR(50),
+    p_ip VARCHAR(45),
+    p_exito BOOLEAN,
+    p_mensaje VARCHAR(200)
+)
+BEGIN
+    INSERT INTO logs_acceso (username, ip_origen, exito, mensaje)
+    VALUES (p_username, p_ip, p_exito, p_mensaje);
+    
+    -- Si el intento fallo, incrementar contador
+    IF p_exito = FALSE THEN
+        UPDATE usuarios 
+        SET intentos_fallidos = intentos_fallidos + 1
+        WHERE username = p_username;
+        
+        -- Bloquear despues de 5 intentos fallidos
+        UPDATE usuarios 
+        SET bloqueado = TRUE
+        WHERE username = p_username AND intentos_fallidos >= 5;
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 6. PROCEDIMIENTO: Verificar login completo
+DELIMITER $$
+
+CREATE PROCEDURE verificar_login(
+    p_username VARCHAR(50),
+    p_password VARCHAR(100),
+    p_ip VARCHAR(45)
+)
+BEGIN
+    DECLARE usuario_bloqueado BOOLEAN DEFAULT FALSE;
+    DECLARE credenciales_validas BOOLEAN DEFAULT FALSE;
+    
+    -- Verificar si el usuario esta bloqueado
+    SELECT bloqueado INTO usuario_bloqueado
+    FROM usuarios
+    WHERE username = p_username;
+    
+    IF usuario_bloqueado = TRUE THEN
+        CALL registrar_intento_acceso(p_username, p_ip, FALSE, 'Usuario bloqueado');
+        SELECT 'Usuario bloqueado por demasiados intentos fallidos' AS resultado;
+    ELSE
+        -- Verificar credenciales
+        SET credenciales_validas = verificar_credenciales(p_username, p_password);
+        
+        IF credenciales_validas = TRUE THEN
+            CALL registrar_intento_acceso(p_username, p_ip, TRUE, 'Login exitoso');
+            SELECT 'Login exitoso' AS resultado, username, email, rol 
+            FROM usuarios 
+            WHERE username = p_username;
+        ELSE
+            CALL registrar_intento_acceso(p_username, p_ip, FALSE, 'Contraseña incorrecta');
+            SELECT 'Usuario o contraseña incorrectos' AS resultado;
+        END IF;
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 7. Verificar triggers creados
+SELECT '=== TRIGGERS CREADOS ===' AS '';
+SHOW TRIGGERS;

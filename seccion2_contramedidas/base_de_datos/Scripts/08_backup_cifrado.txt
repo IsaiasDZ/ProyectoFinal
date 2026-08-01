@@ -1,0 +1,71 @@
+#!/bin/bash
+# =====================================================
+# Script: backup_cifrado.sh
+# Descripcion: Backup cifrado de base de datos con OpenSSL
+# Ubicacion: /home/logistica/backup_cifrado.sh
+# =====================================================
+
+# Configuracion
+FECHA=$(date +%Y%m%d_%H%M%S)
+BACKUP_DIR="/home/logistica/backups"
+DB_NAME="istmo_db_seguro"
+KEY_FILE="/home/logistica/.backup_key"
+LOG_FILE="/home/logistica/logs/backup.log"
+
+# 1. Crear directorios si no existen
+mkdir -p "$BACKUP_DIR"
+mkdir -p "/home/logistica/logs"
+
+# 2. Verificar que la clave existe
+if [ ! -f "$KEY_FILE" ]; then
+    echo "$(date) - ERROR: Clave de cifrado no encontrada" >> "$LOG_FILE"
+    echo "ERROR: Clave de cifrado no encontrada en $KEY_FILE"
+    exit 1
+fi
+
+# 3. Realizar backup y cifrar
+echo "$(date) - Iniciando backup de $DB_NAME" >> "$LOG_FILE"
+
+mysqldump -u root -p "$DB_NAME" 2>/dev/null | \
+  openssl enc -aes-256-cbc -pbkdf2 -salt \
+  -out "$BACKUP_DIR/${DB_NAME}_${FECHA}.sql.enc" \
+  -pass file:"$KEY_FILE"
+
+# 4. Verificar que el backup se creo
+if [ -f "$BACKUP_DIR/${DB_NAME}_${FECHA}.sql.enc" ]; then
+    # Establecer permisos seguros
+    chmod 600 "$BACKUP_DIR/${DB_NAME}_${FECHA}.sql.enc"
+    
+    echo "$(date) - Backup exitoso: ${DB_NAME}_${FECHA}.sql.enc" >> "$LOG_FILE"
+    
+    # Limpiar backups antiguos (mantener ultimos 7 dias)
+    find "$BACKUP_DIR" -name "${DB_NAME}_*.sql.enc" -mtime +7 -delete
+    
+    echo "Backup creado exitosamente:"
+    ls -lh "$BACKUP_DIR/${DB_NAME}_${FECHA}.sql.enc"
+else
+    echo "$(date) - ERROR: Fallo la creacion del backup" >> "$LOG_FILE"
+    echo "ERROR: Fallo la creacion del backup"
+    exit 1
+fi
+
+echo "Backup completado: ${DB_NAME}_${FECHA}.sql.enc"
+
+# ---------------------------------------------------------
+# Dar permisos de ejecución
+# chmod +x /home/logistica/backup_cifrado.sh
+
+# Verificar permisos
+# ls -la /home/logistica/backup_cifrado.sh
+
+# Ejecución manual del script
+# /home/logistica/backup_cifrado.sh
+
+# Te pedirá la contraseña de MySQL, introdúcela
+# Deberías ver un mensaje como: "Backup creado exitosamente"
+
+# Verificar que se creó el backup
+# ls -la /home/logistica/backups/
+
+# Ver el log
+# cat /home/logistica/logs/backup.log

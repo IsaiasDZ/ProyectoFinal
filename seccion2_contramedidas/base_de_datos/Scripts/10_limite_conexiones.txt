@@ -1,0 +1,60 @@
+============================================================
+   CONFIGURACIÓN DE LÍMITES DE CONEXIONES - UBUNTU + MYSQL
+============================================================
+
+1. CONFIGURACIÓN EN SYSTEMD (UBUNTU)
+------------------------------------
+
+# Crear directorio de anulación
+sudo mkdir -p /etc/systemd/system/mysql.service.d
+
+# Crear archivo de configuración
+sudo nano /etc/systemd/system/mysql.service.d/override.conf
+
+# Contenido del archivo:
+[Service]
+LimitNOFILE=65536
+LimitMEMLOCK=infinity
+
+# Guardar (Ctrl+O), salir (Ctrl+X)
+
+# Recargar systemd
+sudo systemctl daemon-reload
+
+# Reiniciar MySQL
+sudo systemctl restart mysql
+
+# Verificar límite de archivos abiertos
+cat /proc/$(pidof mysqld)/limits | grep "Max open files"
+
+
+2. CONFIGURACIÓN EN MYSQL
+-------------------------
+
+# Editar archivo de configuración
+sudo nano /etc/mysql/my.cnf
+
+# Si no existe, editar:
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+
+# Añadir o modificar en la sección [mysqld]:
+[mysqld]
+max_connections = 500
+
+# Guardar (Ctrl+O), salir (Ctrl+X)
+
+# Reiniciar MySQL
+sudo systemctl restart mysql
+
+# Verificar límite en MySQL
+mysql -u root -p -e "SHOW VARIABLES LIKE 'max_connections';"
+
+
+3. VERIFICACIÓN COMPLETA
+------------------------
+
+# Verificar límite del sistema operativo
+cat /proc/$(pidof mysqld)/limits | grep "open files"
+
+# Verificar límite de MySQL
+mysql -u root -p -e "SHOW VARIABLES LIKE 'max_connections';"

@@ -1,0 +1,70 @@
+-- =====================================================
+-- Script: 05_migrar_datos_completo.sql
+-- Descripcion: Migrar usuarios y cuentas de facturacion
+--              con hash automatico mediante trigger
+-- =====================================================
+
+USE istmo_db_seguro;
+
+-- 1. Migrar usuarios (el trigger before_insert_usuario aplica hash + salt)
+INSERT INTO usuarios (username, password_hash, email, rol)
+SELECT 
+    username,
+    password,  -- Texto plano, el trigger lo hashea automaticamente
+    email,
+    rol
+FROM istmo_db_vulnerable.usuarios;
+
+-- 2. Migrar cuentas de facturacion con los nuevos IDs generados
+INSERT INTO cuentas_facturacion (id_transaccion, saldo, usuario_id, proveedor)
+SELECT 
+    v.id_transaccion,
+    v.saldo,
+    s.id_usuario,  -- Nuevo ID generado en la migracion
+    v.proveedor
+FROM istmo_db_vulnerable.cuentas_facturacion v
+INNER JOIN istmo_db_seguro.usuarios s 
+    ON s.username = (SELECT username FROM istmo_db_vulnerable.usuarios WHERE id_usuario = v.usuario_id);
+
+-- 3. Verificar usuarios migrados con hash + salt
+SELECT '=== USUARIOS MIGRADOS (Hash + Salt) ===' AS '';
+SELECT 
+    id_usuario,
+    username,
+    LEFT(password_hash, 30) AS hash_preview,
+    LEFT(salt, 20) AS salt_preview,
+    email,
+    rol
+FROM usuarios;
+
+-- 4. Verificar cuentas de facturacion migradas
+SELECT '=== CUENTAS DE FACTURACION MIGRADAS ===' AS '';
+SELECT 
+    id_cuenta,
+    id_transaccion,
+    saldo,
+    usuario_id,
+    proveedor
+FROM cuentas_facturacion;
+
+-- 5. Verificar que NO hay contraseñas en texto plano
+SELECT '=== VERIFICAR: Hash SHA-256 valido ===' AS '';
+SELECT 
+    username,
+    CASE 
+        WHEN LENGTH(password_hash) = 64 AND password_hash REGEXP '^[0-9a-fA-F]{64}$' 
+        THEN 'HASH SHA2 VALIDO'
+        ELSE 'POSIBLE PROBLEMA'
+    END AS estado
+FROM usuarios;
+
+-- 6. Probar login con un usuario migrado
+SELECT '=== PROBAR LOGIN CON USUARIO MIGRADO ===' AS '';
+SELECT verificar_credenciales('juan_perez', 'Juan2024$') AS 'Login correcto?';
+SELECT verificar_credenciales('juan_perez', 'ContraseñaIncorrecta') AS 'Login incorrecto?';
+
+-- 7. Verificar total de registros migrados
+SELECT '=== RESUMEN MIGRACION ===' AS '';
+SELECT 
+    (SELECT COUNT(*) FROM usuarios) AS total_usuarios,
+    (SELECT COUNT(*) FROM cuentas_facturacion) AS total_cuentas;

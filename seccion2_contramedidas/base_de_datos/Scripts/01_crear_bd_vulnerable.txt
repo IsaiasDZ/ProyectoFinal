@@ -1,0 +1,52 @@
+-- =====================================================
+-- Script: 01_crear_bd_vulnerable.sql
+-- Descripcion: Base de datos VULNERABLE con contraseñas 
+--              en texto plano
+-- =====================================================
+
+-- 1. Crear la base de datos vulnerable
+CREATE DATABASE IF NOT EXISTS istmo_db_vulnerable;
+USE istmo_db_vulnerable;
+
+-- 2. Crear tabla de usuarios (CONTRASEÑAS EN TEXTO PLANO - VULNERABLE)
+CREATE TABLE usuarios (
+    id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(100) NOT NULL,  -- ¡TEXTO PLANO! VULNERABLE
+    email VARCHAR(100),
+    rol VARCHAR(20) DEFAULT 'operador',
+    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- 3. Insertar 6 usuarios con contraseñas en TEXTO PLANO
+INSERT INTO usuarios (username, password, email, rol) VALUES
+('admin_istmo', 'Admin123!', 'admin@istmo.com', 'administrador'),
+('juan_perez', 'Juan2024$', 'juan.perez@istmo.com', 'operador'),
+('maria_garcia', 'Maria#2024', 'maria.garcia@istmo.com', 'supervisor'),
+('carlos_lopez', 'Carlos%123', 'carlos.lopez@istmo.com', 'operador'),
+('ana_martinez', 'Ana@9876', 'ana.martinez@istmo.com', 'operador'),
+('luis_rodriguez', 'Luis*2024', 'luis.rodriguez@istmo.com', 'operador');
+
+-- 4. Crear tabla de cuentas de facturación
+CREATE TABLE cuentas_facturacion (
+    id_cuenta INT AUTO_INCREMENT PRIMARY KEY,
+    id_transaccion BIGINT NOT NULL,
+    saldo DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    usuario_id INT,
+    proveedor VARCHAR(100),
+    fecha_actualizacion DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id_usuario)
+) ENGINE=InnoDB;
+
+-- 5. Insertar datos de facturación
+INSERT INTO cuentas_facturacion (id_transaccion, saldo, usuario_id, proveedor) VALUES
+(1001, 15000.00, 1, 'Proveedor A'),
+(1002, 8500.50, 2, 'Proveedor B'),
+(1003, 32000.75, 3, 'Proveedor C'),
+(1004, 12750.25, 4, 'Proveedor D'),
+(1005, 9900.00, 5, 'Proveedor E'),
+(1006, 45000.00, 6, 'Proveedor F');
+
+-- 5. VERIFICAR: Contraseñas en texto plano (¡INSEGURO!)
+SELECT '=== CONTRASEÑAS EN TEXTO PLANO (VULNERABLE) ===' AS '';
+SELECT id_usuario, username, password, email FROM usuarios;

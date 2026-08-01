@@ -1,0 +1,66 @@
+-- =====================================================
+-- Script: 03_crear_bd_segura.sql
+-- Descripcion: Base de datos SEGURA con hash + salt
+-- =====================================================
+
+-- 1. Crear la base de datos segura
+CREATE DATABASE IF NOT EXISTS istmo_db_seguro;
+USE istmo_db_seguro;
+
+-- 2. Eliminar tablas si existen
+DROP TABLE IF EXISTS auditoria_transacciones;
+DROP TABLE IF EXISTS cuentas_facturacion;
+DROP TABLE IF EXISTS usuarios;
+
+-- 3. Crear tabla de usuarios SEGURA (con hash + salt)
+CREATE TABLE usuarios (
+    id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    salt VARCHAR(64) NOT NULL,
+    email VARCHAR(100),
+    rol VARCHAR(20) DEFAULT 'operador',
+    intentos_fallidos INT DEFAULT 0,
+    bloqueado BOOLEAN DEFAULT FALSE,
+    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ultimo_cambio_password DATETIME
+) ENGINE=InnoDB;
+
+-- 4. Crear tabla de cuentas de facturacion
+CREATE TABLE cuentas_facturacion (
+    id_cuenta INT AUTO_INCREMENT PRIMARY KEY,
+    id_transaccion BIGINT NOT NULL,
+    saldo DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    usuario_id INT,
+    proveedor VARCHAR(100),
+    fecha_actualizacion DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id_usuario)
+) ENGINE=InnoDB;
+
+-- 5. Crear tabla de auditoria INMUTABLE
+CREATE TABLE auditoria_transacciones (
+    id_log            BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id_transaccion     BIGINT NOT NULL,
+    usuario_bd         VARCHAR(100) NOT NULL,
+    ip_origen          VARCHAR(45)  NOT NULL,
+    fecha_hora         DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    saldo_anterior     DECIMAL(14,2) NOT NULL,
+    saldo_nuevo        DECIMAL(14,2) NOT NULL,
+    operacion          ENUM('UPDATE','DELETE','INSERT') NOT NULL,
+    INDEX idx_transaccion (id_transaccion),
+    INDEX idx_fecha (fecha_hora)
+) ENGINE=InnoDB COMMENT='Tabla inmutable de auditoria de transacciones';
+
+-- 6. Crear tabla de intentos de acceso
+CREATE TABLE logs_acceso (
+    id_log INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50),
+    ip_origen VARCHAR(45),
+    fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+    exito BOOLEAN,
+    mensaje VARCHAR(200)
+) ENGINE=InnoDB;
+
+-- 7. Verificar estructura
+SELECT '=== ESTRUCTURA SEGURA CREADA ===' AS '';
+SHOW TABLES;

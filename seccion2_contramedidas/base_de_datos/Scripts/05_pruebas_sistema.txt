@@ -1,0 +1,85 @@
+-- =====================================================
+-- Script: 06_pruebas_sistema.sql
+-- Descripcion: Pruebas completas del sistema seguro
+-- =====================================================
+
+USE istmo_db_seguro;
+
+-- 1. Registrar un NUEVO usuario (el trigger aplica hash + salt automaticamente)
+SELECT '=== 1. REGISTRAR NUEVO USUARIO ===' AS '';
+
+INSERT INTO usuarios (username, password_hash, email, rol)
+VALUES ('nuevo_usuario', 'NuevaClave2026!', 'nuevo@istmo.com', 'operador');
+
+-- Verificar que se aplico hash + salt automaticamente
+SELECT 
+    'Nuevo usuario registrado' AS mensaje,
+    username,
+    LEFT(password_hash, 30) AS hash,
+    LEFT(salt, 20) AS salt
+FROM usuarios 
+WHERE username = 'nuevo_usuario';
+
+-- 2. Verificar login del nuevo usuario
+SELECT '=== 2. VERIFICAR LOGIN ===' AS '';
+SELECT verificar_credenciales('nuevo_usuario', 'NuevaClave2026!') AS 'Login correcto';
+SELECT verificar_credenciales('nuevo_usuario', 'ClaveIncorrecta') AS 'Login incorrecto';
+
+-- 3. Cambiar contraseña (el trigger actualiza hash + salt)
+SELECT '=== 3. CAMBIAR CONTRASEÑA ===' AS '';
+UPDATE usuarios 
+SET password_hash = 'NuevaClave2027!'
+WHERE username = 'nuevo_usuario';
+
+SELECT 
+    'Contraseña actualizada' AS mensaje,
+    username,
+    LEFT(password_hash, 30) AS hash_nuevo,
+    LEFT(salt, 20) AS salt_nuevo,
+    ultimo_cambio_password
+FROM usuarios 
+WHERE username = 'nuevo_usuario';
+
+-- 4. Probar nuevo login con nueva contraseña
+SELECT verificar_credenciales('nuevo_usuario', 'NuevaClave2027!') AS 'Login con nueva contraseña';
+
+-- 5. Probar trigger de auditoria
+SELECT '=== 4. PROBAR TRIGGER DE AUDITORIA ===' AS '';
+
+-- Ver estado inicial
+SELECT 'Estado inicial de cuentas:' AS '';
+SELECT id_cuenta, saldo FROM cuentas_facturacion WHERE id_cuenta = 1;
+
+-- Realizar una actualizacion
+UPDATE cuentas_facturacion SET saldo = saldo + 1000 WHERE id_cuenta = 1;
+
+-- Verificar auditoria
+SELECT 'Auditoria registrada:' AS '';
+SELECT id_transaccion, usuario_bd, ip_origen, 
+       saldo_anterior, saldo_nuevo, 
+       DATE_FORMAT(fecha_hora, '%Y-%m-%d %H:%i:%s') as fecha
+FROM auditoria_transacciones
+ORDER BY fecha_hora DESC
+LIMIT 5;
+
+-- 6. Verificar integridad de datos
+SELECT '=== 5. RESUMEN FINAL ===' AS '';
+SELECT 
+    'Total usuarios' AS concepto,
+    COUNT(*) AS valor
+FROM usuarios
+UNION
+SELECT 
+    'Total cuentas',
+    COUNT(*)
+FROM cuentas_facturacion
+UNION
+SELECT 
+    'Registros auditoria',
+    COUNT(*)
+FROM auditoria_transacciones
+UNION
+SELECT 
+    'Intentos de acceso',
+    COUNT(*)
+FROM logs_acceso;

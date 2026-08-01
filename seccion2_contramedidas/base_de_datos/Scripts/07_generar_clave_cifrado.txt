@@ -1,0 +1,16 @@
+# =====================================================
+# Generación de clave de cifrado para backups usando OpenSSL
+# =====================================================
+
+# Generar clave aleatoria de 32 bytes en base64
+openssl rand -base64 32 > /home/logistica/.backup_key
+
+# Establecer permisos seguros (solo lectura para el propietario)
+chmod 600 /home/logistica/.backup_key
+
+# Verificar que se creó
+ls -la /home/logistica/.backup_key
+cat /home/logistica/.backup_key
+
+# Key generada de ejemplo:
+# cLT5ZyFZJNLJEJJAxJ1XPIAGvsbv8EB2FTcoYqJfrg4=
