@@ -1,0 +1,89 @@
+enable
+
+configure terminal
+
+hostname SW1
+
+interface vlan1
+
+ip address 192.168.10.2 255.255.255.0
+
+no shutdown
+
+exit
+
+ip default-gateway 192.168.10.1
+
+!
+! PUERTO HACIA EL ROUTER
+!
+
+interface FastEthernet0/1
+
+description Conexion hacia R1-EDGE
+
+switchport mode access
+
+spanning-tree portfast
+
+exit
+
+!
+! WEB SERVER
+!
+
+interface FastEthernet0/2
+
+description WEB SERVER
+
+switchport mode access
+
+spanning-tree portfast
+
+exit
+
+!
+! PC ADMIN
+!
+
+interface FastEthernet0/3
+
+description PC ADMIN
+
+switchport mode access
+
+spanning-tree portfast
+
+exit
+
+!
+! PC VENTAS
+!
+
+interface FastEthernet0/4
+
+description PC VENTAS
+
+switchport mode access
+
+spanning-tree portfast
+
+exit
+
+!
+! PC BODEGA
+!
+
+interface FastEthernet0/5
+
+description PC BODEGA
+
+switchport mode access
+
+spanning-tree portfast
+
+exit
+
+end
+
+copy running-config startup-config

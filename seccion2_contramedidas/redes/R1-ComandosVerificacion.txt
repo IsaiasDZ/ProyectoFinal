@@ -1,0 +1,11 @@
+show ip interface brief
+
+show ip route
+
+show ip ssh
+
+show access-lists
+
+show running-config
+
+show version

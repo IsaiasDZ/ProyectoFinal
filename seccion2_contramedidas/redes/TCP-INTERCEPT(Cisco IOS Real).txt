@@ -1,0 +1,5 @@
+ip tcp intercept mode intercept
+
+ip tcp intercept one-minute high 1100
+
+ip tcp intercept one-minute low 900

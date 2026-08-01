@@ -1,0 +1,19 @@
+enable
+
+configure terminal
+
+hostname ISP2
+
+interface GigabitEthernet0/0
+
+description Enlace de respaldo
+
+ip address 201.1.1.1 255.255.255.252
+
+no shutdown
+
+exit
+
+end
+
+copy running-config startup-config

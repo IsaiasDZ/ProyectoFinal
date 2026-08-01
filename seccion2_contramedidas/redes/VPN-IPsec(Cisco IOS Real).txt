@@ -1,0 +1,20 @@
+crypto isakmp policy 10
+ encryption aes 256
+ hash sha256
+ authentication pre-share
+ group 14
+ lifetime 86400
+
+crypto isakmp key Empresa2026 address <IP_REMOTA>
+
+crypto ipsec transform-set VPN-SET esp-aes 256 esp-sha-hmac
+
+access-list 110 permit ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
+
+crypto map VPN-MAP 10 ipsec-isakmp
+ set peer <IP_REMOTA>
+ set transform-set VPN-SET
+ match address 110
+
+interface GigabitEthernet0/0
+ crypto map VPN-MAP

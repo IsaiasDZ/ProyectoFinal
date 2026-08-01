@@ -1,0 +1,19 @@
+enable
+
+configure terminal
+
+hostname ISP1
+
+interface GigabitEthernet0/0
+
+description Enlace hacia R1
+
+ip address 200.1.1.1 255.255.255.252
+
+no shutdown
+
+exit
+
+end
+
+copy running-config startup-config

@@ -1,0 +1,76 @@
+enable
+configure terminal
+
+hostname R1-EDGE
+
+no ip domain-lookup
+
+enable secret C1sc0@2026
+
+service password-encryption
+
+banner motd #
+*****************************************
+ ACCESO RESTRINGIDO
+ Solo personal autorizado
+ Toda actividad será monitoreada.
+*****************************************
+#
+
+!
+! INTERFAZ ISP1
+!
+
+interface GigabitEthernet0/0
+
+description Conexion ISP1
+
+ip address 200.1.1.2 255.255.255.252
+
+no shutdown
+
+exit
+
+!
+! INTERFAZ LAN
+!
+
+interface GigabitEthernet0/1
+
+description LAN INTERNA
+
+ip address 192.168.10.1 255.255.255.0
+
+no shutdown
+
+exit
+
+!
+! INTERFAZ ISP2
+!
+
+interface GigabitEthernet0/2
+
+description Conexion ISP2
+
+ip address 201.1.1.2 255.255.255.252
+
+no shutdown
+
+exit
+
+!
+! RUTA PRINCIPAL
+!
+
+ip route 0.0.0.0 0.0.0.0 200.1.1.1
+
+!
+! RUTA FLOTANTE
+!
+
+ip route 0.0.0.0 0.0.0.0 201.1.1.1 10
+
+end
+
+copy running-config startup-config

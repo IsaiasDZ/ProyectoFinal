@@ -1,0 +1,7 @@
+snmp-server group ADMIN v3 priv
+
+snmp-server user auditor ADMIN v3 auth sha Clave123 priv aes 256 Clave456
+
+snmp-server location CentroDatos
+
+snmp-server contact Administrador

@@ -1,0 +1,7 @@
+ip http secure-server
+
+no ip http server
+
+ip http authentication local
+
+username administrador privilege 15 secret Adm1n@2026
